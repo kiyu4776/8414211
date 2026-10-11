@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/favicon.ico">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+<script src="include/arm64.js"></script>
+<script src="include/elf.js"></script>
+<script src="include/decompiler.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/armasm.min.js"></script>
+
+</head>
+<body>
+<input type="file" id="file">
+<button id="clike" disabled>C</button>
+<button id="full" disabled>arm64</button>
+<pre id="out" class="hljs" style="height:70vh;border:1px solid #888;border-radius:12px;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-all">-</pre>
+<script>
+var asmText = '', cText = '', cur = '', curLanguage = '', pos = 0;
+var CHUNK = 1024;
+var out = document.getElementById('out');
+var bC = document.getElementById('clike'), bF = document.getElementById('full');
+
+function split(t) {
+  var lines = t.split('\n'), asm = [], c = [], inC = false;
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i] === '--- --- decompile --- ---') { inC = true; continue; }
+    if (/^=== .* @ .* ===$/.test(lines[i])) inC = false;
+    (inC ? c : asm).push(lines[i]);
+  }
+  return { asm: asm.join('\n').replace(/\s+$/, ''), c: c.join('\n').replace(/^\s+|\s+$/g, '') };
+}
+
+function nextChunk() {
+  if (pos >= cur.length) return false;
+  var end = Math.min(pos + CHUNK, cur.length);
+  var nl = cur.indexOf('\n', end);
+  if (nl !== -1 && nl - end < 200) end = nl + 1;
+  var chunk = cur.slice(pos, end);
+  if (curLanguage && typeof hljs !== 'undefined' && hljs.getLanguage(curLanguage)) out.insertAdjacentHTML('beforeend', hljs.highlight(chunk, { language: curLanguage }).value);
+  else out.appendChild(document.createTextNode(chunk));
+  pos = end;
+  return true;
+}
+
+function show(text, language) {
+  cur = text; curLanguage = language || ''; pos = 0;
+  out.textContent = '';
+  out.scrollTop = 0;
+  nextChunk();
+  while (out.scrollHeight <= out.clientHeight && nextChunk()) {}
+}
+
+out.onscroll = function () {
+  if (out.scrollTop + out.clientHeight >= out.scrollHeight - 40) nextChunk();
+};
+
+document.getElementById('file').onchange = function (e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  out.textContent = 'decompiling...';
+  var r = new FileReader();
+  r.onload = function () {
+    setTimeout(function () {
+      try {
+        var t = decompile({ bytes: new Uint8Array(r.result), name: f.name, allFunctions: true, format: 'text' });
+        var p = split(t);
+        asmText = p.asm; cText = p.c;
+        show(asmText);
+        bC.disabled = bF.disabled = false;
+      } catch (err) {
+        out.textContent = 'エラー: ' + err;
+      }
+    }, 20);
+  };
+  r.readAsArrayBuffer(f);
+};
+bC.onclick = function () { show(cText, 'c'); };
+bF.onclick = function () { show(asmText, 'armasm'); };
+</script>
+</body>
+</html>
