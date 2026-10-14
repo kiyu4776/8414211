@@ -14,15 +14,16 @@
 
 </head>
 <body>
-<input type="file" id="file">
+<input type="file" id="file"><br>
 <button id="full" disabled>arm64</button>
 <button id="clike" disabled>C</button>
-<pre id="out" class="hljs" style="height:70vh;border:1px solid #888;border-radius:12px;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-all">-</pre>
+<button id="copy" disabled>copy</button>
+<pre id="out" class="hljs" style="height:70vh;overflow:auto;white-space:pre-wrap;word-break:break-all">-</pre>
 <script>
 var asmText = '', cText = '', cur = '', curLanguage = '', pos = 0;
 var CHUNK = 1024;
 var out = document.getElementById('out');
-var bC = document.getElementById('clike'), bF = document.getElementById('full');
+var bC = document.getElementById('clike'), bF = document.getElementById('full'), bCopy = document.getElementById('copy');
 
 function split(t) {
   var lines = t.split('\n'), asm = [], c = [], inC = false;
@@ -70,7 +71,7 @@ document.getElementById('file').onchange = function (e) {
         var p = split(t);
         asmText = p.asm; cText = p.c;
         show(asmText);
-        bC.disabled = bF.disabled = false;
+        bC.disabled = bF.disabled = bCopy.disabled = false;
       } catch (err) {
         out.textContent = err;
       }
@@ -80,6 +81,7 @@ document.getElementById('file').onchange = function (e) {
 };
 bC.onclick = function () { show(cText, 'c'); };
 bF.onclick = function () { show(asmText, 'armasm'); };
+bCopy.onclick = function () { navigator.clipboard.writeText(cur); };
 </script>
 </body>
 </html>
