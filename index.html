@@ -60,8 +60,8 @@ out.onscroll = function () {
   if (out.scrollTop + out.clientHeight >= out.scrollHeight - 40) nextChunk();
 };
 
-document.getElementById('file').onchange = function (e) {
-  var f = e.target.files[0];
+var fileInput = document.getElementById('file');
+function loadFile(f) {
   if (!f) return;
   out.textContent = 'decompiling...';
   var r = new FileReader();
@@ -79,7 +79,14 @@ document.getElementById('file').onchange = function (e) {
     }, 20);
   };
   r.readAsArrayBuffer(f);
-};
+}
+
+fileInput.onchange = function (e) { loadFile(e.target.files[0]); };
+document.body.addEventListener('dragover', function (e) { e.preventDefault(); });
+document.body.addEventListener('drop', function (e) {
+  e.preventDefault();
+  loadFile(e.dataTransfer.files[0]);
+});
 bC.onclick = function () { show(cText, 'c'); };
 bF.onclick = function () { show(asmText, 'armasm'); };
 bCopy.onclick = function () { navigator.clipboard.writeText(cur); };
